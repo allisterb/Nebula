@@ -14,9 +14,20 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.Amazon;
 
 using Amazon.BedrockRuntime;
+using System.Net.Http.Headers;
+using Amazon.Runtime;
+using Amazon.Util;
 
 public class ModelConversation : Runtime
 {
+    static ModelConversation()
+    {
+        if (config is not null)
+        {
+            Environment.SetEnvironmentVariable("AWS_BEARER_TOKEN_BEDROCK", config["ApiKey"], EnvironmentVariableTarget.Process);
+        }
+    }
+    
     public ModelConversation(string modelId, string? embeddingModelId = null, string[]? systemPrompts = null, params AITool[]? aITools) : base()
     {
         this.modelId = modelId;
@@ -28,10 +39,12 @@ public class ModelConversation : Runtime
                 .SetMinimumLevel(LogLevel.Trace)
                 .AddProvider(loggerProvider)
             );
-        var apiKey = config?["Model:ApiKey"] ?? throw new Exception();
-        chat = new BedrockChatCompletionService(modelId, bedrockRuntimeClient, loggerFactory); //Amazon.BedrockRuntime. GoogleAIGeminiChatCompletionService(this.modelId, apiKey, loggerFactory: loggerFactory)
-            //.UsingChatHistoryReducer(new ChatHistoryTruncationReducer(16, 24));            
-        chatClient = chat.AsChatClient();      
+        //var apiKey = config?["Model:ApiKey"] ?? throw new Exception();
+        //var cred = new EnvironmentVariablesAWSCredentials();
+        bedrockRuntimeClient = new AmazonBedrockRuntimeClient(region: Amazon.RegionEndpoint.USEast2);
+
+        chatClient = bedrockRuntimeClient.AsIChatClient(ModelIds.NovaLite);
+        chat = chatClient.AsChatCompletionService();
         if (this.embeddingModelId is not null)
         {
             builder.AddBedrockEmbeddingGenerator(this.embeddingModelId, bedrockRuntimeClient);
@@ -170,7 +183,7 @@ public class ModelConversation : Runtime
 
     public readonly string? embeddingModelId;
 
-    public readonly AmazonBedrockRuntimeClient bedrockRuntimeClient = new AmazonBedrockRuntimeClient("", "");
+    public readonly AmazonBedrockRuntimeClient bedrockRuntimeClient;
 
     public readonly Kernel kernel; 
 
@@ -192,8 +205,8 @@ public class ModelConversation : Runtime
     #region Types
     public record ModelIds
     {
-        public const string Gemma3 = "gemini-3-pro-preview";
-        public const string Gemma31 = "gemini-3.1-pro-preview-customtools";
+        public const string NovaLite = "global.amazon.nova-2-lite-v1:0";
+        public const string NovaPro = "amazon.nova-pro-v1:0";
     }
     #endregion
 }

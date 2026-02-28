@@ -314,6 +314,8 @@ public abstract class Runtime
                 .AddJsonFile(configFilePath, optional: !required, reloadOnChange: true)
                 .Build();
      
+    public static string GetRequiredValue(IConfigurationRoot? config, string key) => config?[key] ?? throw new ArgumentNullException(key);
+
     #endregion
 
     #region Fields
