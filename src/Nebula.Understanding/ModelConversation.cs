@@ -9,24 +9,61 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Amazon;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.Amazon;
+
 using Amazon.BedrockRuntime;
 
 public class ModelConversation : Runtime
 {
-    public ModelConversation(string modelId, string? embeddingModelId = null, string[]? systemPrompts = null, params IPlugin[]? plugins) : base()
+    public ModelConversation(string modelId, string? embeddingModelId = null, string[]? systemPrompts = null, params AITool[]? aITools) : base()
     {
         this.modelId = modelId;
         this.embeddingModelId = embeddingModelId;
-        this.systemPrompts = systemPrompts;                    
-        ChatClientBuilder builder = new ChatClientBuilder(bedrockClient.AsIChatClient("ll"));
-        builder
-            .UseLogging(loggerFactory)
-            .UseFunctionInvocation(loggerFactory);                                  
-        chatClient = builder.Build();
-       
-        Info("Using Google Gemini model {0}.", this.modelId);
-       
+        this.systemPrompts = systemPrompts;
+        IKernelBuilder builder = Kernel.CreateBuilder();
+        builder.Services.AddLogging(builder =>
+            builder
+                .SetMinimumLevel(LogLevel.Trace)
+                .AddProvider(loggerProvider)
+            );
+        var apiKey = config?["Model:ApiKey"] ?? throw new Exception();
+        chat = new BedrockChatCompletionService(modelId, bedrockRuntimeClient, loggerFactory); //Amazon.BedrockRuntime. GoogleAIGeminiChatCompletionService(this.modelId, apiKey, loggerFactory: loggerFactory)
+            //.UsingChatHistoryReducer(new ChatHistoryTruncationReducer(16, 24));            
+        chatClient = chat.AsChatClient();      
+        if (this.embeddingModelId is not null)
+        {
+            builder.AddBedrockEmbeddingGenerator(this.embeddingModelId, bedrockRuntimeClient);
+        }
+        promptExecutionSettings = new PromptExecutionSettings
+        {
+            ModelId = this.modelId,
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(autoInvoke: true),                       
+        };
+        Info("Using Amazon Bedrock model {0}.", this.modelId);
+        builder.Services
+            .AddChatClient(chatClient)
+            .UseFunctionInvocation(loggerFactory)
+            .UseKernelFunctionInvocation(loggerFactory);
+        kernel = builder.Build();
+
+        if (systemPrompts is not null)
+        {
+            foreach (var systemPrompt in systemPrompts)
+            {
+                messages.AddSystemMessage(systemPrompt);
+            }
+        }
+
+        if (plugins is not null)
+        {
+            foreach (var plugin in plugins)
+            {                
+                kernel.Plugins.AddFromObject(plugin, plugin.Name);
+                this.plugins.Add(plugin);
+            }
+        }
     }
 
     #region Properties
@@ -83,28 +120,7 @@ public class ModelConversation : Runtime
                 else if (item is byte[] b)
                 {
                     messageItems.Add(new ImageContent(b, "image/png"));
-                }
-                else if (item is Image image)
-                {
-                    if (image.ImageBytes is not null)
-                    {
-                        messageItems.Add(new ImageContent(image.ImageBytes, image.MimeType ?? "image/png"));
-                    }
-                    else if (image.GcsUri is not null)
-                    {
-#pragma warning disable SYSLIB0014 // Type or member is obsolete
-                        var wc = new System.Net.WebClient();
-#pragma warning restore SYSLIB0014 // Type or member is obsolete
-                        var data = wc.DownloadData(image.GcsUri);
-                        {
-                            messageItems.Add(new ImageContent(image.ImageBytes, image.MimeType ?? "image/png"));
-                        }
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Image content must have either ImageBytes or GcsUri.");
-                    }
-                }
+                }                
                 else
                 {
                     throw new ArgumentException($"Unsupported content type {item.GetType()}");
@@ -154,9 +170,17 @@ public class ModelConversation : Runtime
 
     public readonly string? embeddingModelId;
 
-    public readonly AmazonBedrockRuntimeClient bedrockClient = new AmazonBedrockRuntimeClient(RegionEndpoint.USEast1);
+    public readonly AmazonBedrockRuntimeClient bedrockRuntimeClient = new AmazonBedrockRuntimeClient("", "");
 
-    public readonly IChatClient chatClient ;
+    public readonly Kernel kernel; 
+
+    public readonly IChatClient chatClient;
+
+    public readonly IChatCompletionService chat;
+
+    public readonly ChatHistory messages = new ChatHistory();
+
+    public readonly PromptExecutionSettings promptExecutionSettings;
 
     protected List<IPlugin> plugins = new List<IPlugin>();
 
@@ -168,8 +192,8 @@ public class ModelConversation : Runtime
     #region Types
     public record ModelIds
     {
-        public const string NovaLite = "amazon.nova-lite-v1:0";
-        public const string NovaPro = "amazon.nova-pro-v1:0";
+        public const string Gemma3 = "gemini-3-pro-preview";
+        public const string Gemma31 = "gemini-3.1-pro-preview-customtools";
     }
     #endregion
 }
