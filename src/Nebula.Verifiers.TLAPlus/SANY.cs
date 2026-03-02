@@ -2,9 +2,6 @@
 
 using System;
 using System.Text;
-using System.Linq;
-
-using tla2sany;
 
 using static Result;
 
@@ -19,24 +16,16 @@ public class SANY : Runtime
         util.SimpleFilenameToStream fts = new util.SimpleFilenameToStream(Directory.GetParent(file)?.FullName);
         var spec = new tla2sany.modanalyzer.SpecObj(Path.GetFullPath(file), fts);        
         var sb = new StringBuilder();        
-        var stream = new java.io.PrintStream(new StringBuilderOutputStream(sb));        
+        var stream = new java.io.PrintStream(new StringBuilderOutputStream(sb), true, "UTF8");        
         try
         {
             tla2sany.drivers.SANY.frontEndInitialize(spec, stream);
             tla2sany.drivers.SANY.frontEndParse(spec, stream, true);
             return Success(sb.ToString());
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            if (spec.parseErrors != null && spec.parseErrors.isFailure())
-            {
-                var errors = spec.parseErrors.getAborts().Concat(spec.parseErrors.getErrors()).JoinWithNewlines();
-                return Failure<string>($"Error parsing {file}: {errors}.");
-            }
-            else
-            {
-                return Failure<string>($"Error parsing {file}", ex);
-            }
+            return Failure<string>(sb.ToString());
         }
     }
 }
