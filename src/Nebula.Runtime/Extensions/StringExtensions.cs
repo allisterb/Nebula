@@ -10,6 +10,10 @@ namespace Nebula
     {
         public static string Delete(this string s, string r) => s.Replace(r, string.Empty);
 
+        public static string JoinWith(this IEnumerable<string> s, string sep) => s.Aggregate((l, r) => l + sep + r);
+
+        public static string JoinWithNewlines(this IEnumerable<string> s) => s.JoinWith(Environment.NewLine);
+
         public static string JoinSuperscript(this string s, string r)
         {
             if (s.Contains("_"))

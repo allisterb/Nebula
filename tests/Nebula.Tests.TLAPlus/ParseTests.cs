@@ -1,8 +1,8 @@
-﻿using Nebula.Verifiers.TLAPlus;
+﻿namespace Nebula.Tests.TLAPlus;
 
-namespace Nebula.Tests.TLAPlus;
+using Nebula.Verifiers.TLAPlus;
 
-public class UnitTest1
+public class SANYTests
 {
     [Fact]
     public void CanParse()

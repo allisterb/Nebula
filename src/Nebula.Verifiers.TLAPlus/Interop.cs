@@ -4,11 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-
 internal sealed class StringBuilderOutputStream : java.io.OutputStream
 {
     private readonly StringBuilder sb;
-    private readonly System.Text.Encoding encoding;
+    private readonly Encoding encoding;
 
     public StringBuilderOutputStream(StringBuilder sb, System.Text.Encoding? encoding = null)
     {
