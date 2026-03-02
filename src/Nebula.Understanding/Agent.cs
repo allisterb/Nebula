@@ -17,16 +17,14 @@ public class Agent : Runtime
     {
         this.modelId = modelId;
         this.embeddingModelId = embeddingModelId;
-                  
+        bedrockClient = new AmazonBedrockRuntimeClient(region: Amazon.RegionEndpoint.USEast2);
         ChatClientBuilder builder = new ChatClientBuilder(bedrockClient.AsIChatClient(this.modelId));
         builder
             .UseLogging(loggerFactory)
             .UseFunctionInvocation(loggerFactory);                                              
         chatClient = builder.Build();
-        agent = chatClient.AsAIAgent(instructions, loggerFactory: loggerFactory);
-        //a.
-        Info("Using Amazon Beddrock model {0}.", this.modelId);
-       
+        agent = chatClient.AsAIAgent(instructions, loggerFactory: loggerFactory);        
+        Info("Using Amazon Bedrock model {0}.", this.modelId);       
     }
 
     #region Properties
@@ -43,12 +41,8 @@ public class Agent : Runtime
 
     public readonly string? embeddingModelId;
 
-    public readonly AmazonBedrockRuntimeClient bedrockClient = new AmazonBedrockRuntimeClient("", "", clientConfig:new AmazonBedrockRuntimeConfig() 
-    { 
-        ClientAppId = "Nebula"
+    public readonly AmazonBedrockRuntimeClient bedrockClient;
     
-    });
-
     public readonly IChatClient chatClient;
 
     public readonly ChatClientAgent agent;

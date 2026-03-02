@@ -205,8 +205,8 @@ public class ModelConversation : Runtime
     #region Types
     public record ModelIds
     {
-        public const string NovaLite = "global.amazon.nova-2-lite-v1:0";
-        public const string NovaPro = "amazon.nova-pro-v1:0";
+        public const string NovaLite = "us.amazon.nova-2-lite-v1:0";
+        public const string NovaPro = "us.amazon.nova-pro-v1:0";
     }
     #endregion
 }

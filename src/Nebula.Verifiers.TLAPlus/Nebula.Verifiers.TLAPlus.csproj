@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="IKVM" Version="8.15.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <IkvmReference Include="..\..\lib\tla2tools.jar">
+      <AssemblyName>tla2tools</AssemblyName>
+      <AssemblyVersion>0.8.15</AssemblyVersion>
+      <AssemblyFileVersion>0.8.15</AssemblyFileVersion>
+    </IkvmReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nebula.Runtime\Nebula.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>
