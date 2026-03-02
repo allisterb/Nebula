@@ -420,3 +420,4 @@ FodyWeavers.xsd
 # Project
 
 **/*/testappsettings.json
+lib/*
